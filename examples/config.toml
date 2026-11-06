@@ -1,0 +1,27 @@
+# example config.toml
+#
+# copy to ~/.config/lidl-cli/config.toml and edit. `lidl config set KEY VALUE`
+# writes the same file without losing comments you add by hand.
+#
+# unknown keys are an error: the CLI decodes this file strictly.
+
+[watch]
+# default interval for watches that do not pass --interval. floor 5m.
+interval = "30m"
+
+# where watch events go besides stdout. uncomment and adapt.
+
+# [sinks.phone]
+# type = "ntfy"
+# url = "https://ntfy.sh"
+# topic = "my-lidl-alerts"
+# token_file = "~/.config/lidl-cli/ntfy-token"   # optional
+
+# [sinks.chat]
+# type = "webhook"
+# url = "https://discord.com/api/webhooks/..."
+# template = "discord"        # or "slack"; omit to send the raw event json
+
+# [sinks.script]
+# type = "exec"
+# command = ["/home/me/bin/on-lidl-event"]   # event json on stdin
