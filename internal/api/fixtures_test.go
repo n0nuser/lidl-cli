@@ -279,3 +279,23 @@ func TestSearchAcceptHeader(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestFilterValueIsWhatTheLinkFilters(t *testing.T) {
+	c := site(t, func(w http.ResponseWriter, r *http.Request) { w.Write(fixture(t, "search_atornillador.json")) })
+	l, err := c.List(context.Background(), ListParams{Query: "atornillador"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]string{"category": "Bricolaje y jardín", "availabilityIndicator": "3", "brand": "PARKSIDE", "ratingAverage": "4.0 - 5.01"}
+	for _, f := range l.Filters {
+		if w, ok := want[f.Code]; ok {
+			if f.Values[0].Value != w {
+				t.Errorf("%s: value %q, want %q", f.Code, f.Values[0].Value, w)
+			}
+			delete(want, f.Code)
+		}
+	}
+	if len(want) != 0 {
+		t.Errorf("facets missing: %v", want)
+	}
+}

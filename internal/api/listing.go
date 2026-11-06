@@ -234,6 +234,9 @@ type rawFacetValue struct {
 	Value    json.RawMessage `json:"value"`
 	Count    int             `json:"count"`
 	Selected bool            `json:"selected"`
+	Link     struct {
+		Filter map[string][]string `json:"filter"`
+	} `json:"link"`
 }
 
 // List fetches one page of search results.
@@ -346,6 +349,12 @@ func (f rawFacet) filter() Filter {
 	}
 	for _, v := range vals {
 		fv := FilterValue{Value: scalar(v.Value), Label: v.Label, Count: v.Count, Applied: v.Selected}
+		// What goes after CODE= is what the site's own link for the value
+		// carries: the category facet's value is an id, but its filter takes
+		// the label (regression test TestFilterValueIsWhatTheLinkFilters).
+		if lf := v.Link.Filter[f.Code]; len(lf) > 0 {
+			fv.Value = lf[0]
+		}
 		if fv.Value == "" {
 			fv.Value = v.Label
 		}
