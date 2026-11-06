@@ -1,0 +1,174 @@
+// Package sink delivers watch events to places other than stdout: an ntfy
+// topic, a JSON webhook, or a local program. Sinks are declared in config.toml.
+package sink
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"os"
+	"os/exec"
+	"strings"
+	"time"
+
+	"github.com/n0nuser/lidl-cli/internal/config"
+	"github.com/n0nuser/lidl-cli/internal/state"
+)
+
+// Validate checks a sink's fields without sending anything.
+func Validate(name string, s config.SinkConfig) error {
+	switch s.Type {
+	case "ntfy":
+		if s.URL == "" || s.Topic == "" {
+			return fmt.Errorf("sink %q: ntfy needs url and topic", name)
+		}
+	case "webhook":
+		if s.URL == "" {
+			return fmt.Errorf("sink %q: webhook needs url", name)
+		}
+		if s.Template != "" && s.Template != "discord" && s.Template != "slack" {
+			return fmt.Errorf("sink %q: template must be discord or slack", name)
+		}
+	case "exec":
+		if len(s.Command) == 0 {
+			return fmt.Errorf("sink %q: exec needs command", name)
+		}
+	default:
+		return fmt.Errorf("sink %q: type must be ntfy, webhook or exec, not %q", name, s.Type)
+	}
+	return nil
+}
+
+// Deliver sends one event. A failure is returned, never fatal: one dead
+// webhook must not stop the other sinks or the state commit.
+func Deliver(ctx context.Context, name string, s config.SinkConfig, ev state.Event) error {
+	if err := Validate(name, s); err != nil {
+		return err
+	}
+	switch s.Type {
+	case "ntfy":
+		return ntfy(ctx, s, ev)
+	case "webhook":
+		return webhook(ctx, s, ev)
+	}
+	return run(ctx, s, ev)
+}
+
+// Summary is the short human form of an event, for push notifications and
+// chat webhooks: a title, a detail line and the product URL.
+func Summary(ev state.Event) (title, detail, link string) {
+	var p struct {
+		Title string `json:"title"`
+		URL   string `json:"url"`
+		Price *struct {
+			Amount float64 `json:"amount"`
+		} `json:"price"`
+	}
+	_ = json.Unmarshal(ev.Product, &p)
+	var ch struct{ From, To any }
+	_ = json.Unmarshal(ev.Change, &ch)
+	price := ""
+	if p.Price != nil {
+		price = fmt.Sprintf("%.2f €", p.Price.Amount)
+	}
+	switch ev.Type {
+	case state.ProductNew:
+		title, detail = "New: "+p.Title, price
+	case state.PriceChanged:
+		title, detail = "Price: "+p.Title, fmt.Sprintf("%v € -> %v €", ch.From, ch.To)
+	case state.OutOfStock:
+		title = "Out of stock: " + p.Title
+	case state.BackInStock:
+		title = "Back in stock: " + p.Title
+		detail = price
+	case state.ProductRemoved:
+		title = "Removed: " + p.Title
+	default:
+		title = ev.Type + ": " + p.Title
+	}
+	return title, strings.TrimSpace(detail + " [" + ev.Watch + "]"), p.URL
+}
+
+var client = &http.Client{Timeout: 15 * time.Second}
+
+func ntfy(ctx context.Context, s config.SinkConfig, ev state.Event) error {
+	title, detail, link := Summary(ev)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(s.URL, "/")+"/"+s.Topic, strings.NewReader(detail))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Title", title)
+	req.Header.Set("Tags", "hammer")
+	if link != "" {
+		req.Header.Set("Click", link)
+	}
+	if s.TokenFile != "" {
+		tok, err := os.ReadFile(config.ExpandHome(s.TokenFile))
+		if err != nil {
+			return fmt.Errorf("ntfy token file: %w", err)
+		}
+		req.Header.Set("Authorization", "Bearer "+strings.TrimSpace(string(tok)))
+	}
+	return post(req)
+}
+
+func webhook(ctx context.Context, s config.SinkConfig, ev state.Event) error {
+	var body any = ev
+	if s.Template != "" {
+		title, detail, link := Summary(ev)
+		key := "content" // discord
+		if s.Template == "slack" {
+			key = "text"
+		}
+		body = map[string]string{key: title + "\n" + detail + "\n" + link}
+	}
+	raw, err := json.Marshal(body)
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.URL, bytes.NewReader(raw))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	return post(req)
+}
+
+func post(req *http.Request) error {
+	req.Header.Set("User-Agent", "lidl-cli")
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	resp.Body.Close()
+	if resp.StatusCode >= 300 {
+		return fmt.Errorf("%s answered HTTP %d", req.URL.Host, resp.StatusCode)
+	}
+	return nil
+}
+
+// run starts the program with the event JSON on stdin and its type and watch
+// in the environment.
+func run(ctx context.Context, s config.SinkConfig, ev state.Event) error {
+	raw, err := json.Marshal(ev)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	argv := make([]string, len(s.Command))
+	for i, a := range s.Command {
+		argv[i] = config.ExpandHome(a)
+	}
+	cmd := exec.CommandContext(ctx, argv[0], argv[1:]...)
+	cmd.Stdin = bytes.NewReader(raw)
+	cmd.Env = append(os.Environ(), "LIDL_EVENT_TYPE="+ev.Type, "LIDL_WATCH="+ev.Watch)
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("%s: %w: %s", argv[0], err, strings.TrimSpace(stderr.String()))
+	}
+	return nil
+}
