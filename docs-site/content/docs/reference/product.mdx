@@ -1,0 +1,45 @@
+---
+title: product
+description: "Inspect one product"
+---
+
+{/* Written by cmd/docsgen from the command tree; edit the Go help strings instead. */}
+
+## `lidl product`
+
+Inspect one product
+
+### `lidl product show`
+
+A product's price, rating, online availability and description
+
+```bash
+lidl product show PRODUCT
+```
+
+Show one product. PRODUCT is its number (the digits after "p" in
+/p/\<slug>/p100405593) or its URL.
+
+The page has no struck-through price; use `lidl search` for old_price and the
+promotion dates.
+
+```bash
+lidl product show 100405593 --format pretty
+lidl product show https://www.lidl.es/p/parkside-taladro/p100405593
+```
+
+### `lidl product stock`
+
+Whether a product can be bought online
+
+```bash
+lidl product stock PRODUCT
+```
+
+Report online availability for one product. Lidl publishes stock per
+product, not per store, and no quantity.
+
+```bash
+lidl product stock 100405593
+```
+

@@ -1,0 +1,38 @@
+---
+title: Output
+description: JSON by default, a table for reading, JSONL for streams, TOON for model context.
+---
+
+stdout carries data only; errors and notices go to stderr, so `lidl … | jq` never chokes on a message.
+
+<Tabs items={['json', 'pretty', 'jsonl', 'toon']}>
+  <Tab value="json">One JSON document. The default.</Tab>
+  <Tab value="pretty">An aligned table. Colour follows `NO_COLOR` and is off when stdout is not a terminal.</Tab>
+  <Tab value="jsonl">One object per line: a search's products, a check's events.</Tab>
+  <Tab value="toon">TOON, a compact form of the same JSON for language-model context.</Tab>
+</Tabs>
+
+## A search
+
+```json
+{
+  "query": "atornillador", "page": 1, "pages": 3, "total": 137, "sort": "relevancy",
+  "products": [ { "ref": "100405593", "title": "…", "price": { "amount": 36.99, "currency": "EUR", "tax": "21" },
+                  "rating": { "average": 4.7, "count": 259 }, "stock": { "available": true } } ]
+}
+```
+
+`price` is null when the site shows none. `stock.available` means it can be ordered online; there is no
+quantity and no per-store stock.
+
+## Errors
+
+```bash
+lidl --error-format json product show 999999999
+```
+
+```json
+{ "code": 4, "category": "not_found", "retryable": false, "message": "no product 999999999 on lidl.es" }
+```
+
+Branch on `category` or the exit code, not on `message`.

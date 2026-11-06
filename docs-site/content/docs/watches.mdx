@@ -1,0 +1,52 @@
+---
+title: Watches
+description: Turn a search or a product into a stream of changes.
+---
+
+A watch is a saved search or product. Each check compares what the site shows now with what it showed last
+time and emits events.
+
+```bash
+lidl watch add product 100405593 --name taladro
+lidl watch add search atornillador --max-price 40 --name atornillador --notify phone
+lidl watch list --format pretty
+lidl watch check
+lidl watch events --since 24h --format pretty
+```
+
+The first check runs when the watch is added and records a silent baseline; `--emit-initial` reports what
+exists as `product.new` instead.
+
+## Events
+
+| type | when | `change` |
+|---|---|---|
+| `product.new` | a search lists a product it had not listed | |
+| `product.price_changed` | the price moved | `{from, to}` |
+| `product.out_of_stock` | it was available online, now it is not | |
+| `product.back_in_stock` | it was not available online, now it is | |
+| `product.removed` | product watches: the page is gone | |
+
+Offers are short, so a search watch with `--sort newest` or `--sort discount` is the way to hear about new
+ones. A product that drops out of a search is not reported, since offers expire.
+
+```json
+{"type":"product.price_changed","watch":"taladro","at":"2026-11-06T08:30:00Z","change":{"from":40.99,"to":36.99},
+ "product":{"ref":"100405593","title":"Taladro atornillador recargable de 20 V …","price":{"amount":36.99}}}
+```
+
+## Sinks
+
+```toml
+[sinks.phone]
+type = "ntfy"
+url = "https://ntfy.sh"
+topic = "my-lidl-alerts"
+```
+
+```bash
+lidl sink test phone
+```
+
+`webhook` sinks post the event JSON (or, with `template = "discord"` or `"slack"`, a text message); `exec`
+sinks run a program with the event on stdin.

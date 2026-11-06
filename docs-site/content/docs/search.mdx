@@ -1,0 +1,51 @@
+---
+title: Search and browse
+description: The site's filters, as flags.
+---
+
+```bash
+lidl search atornillador
+lidl search --category "Bricolaje y jardín" --sort discount
+```
+
+Keywords search the catalogue. They are optional when `--category`, `--brand` or `--filter` narrows the
+search: an empty query inside a category lists the whole category. `lidl category list` shows the
+`/c/<slug>/s<id>` pages from the sitemap (brand and editorial pages included).
+
+## Filters
+
+| flag | site filter |
+|---|---|
+| `--brand parkside` | the "Marca" facet; repeat for several, case does not matter |
+| `--min-price 5 --max-price 40` | the price range |
+| `--min-rating 4` | "Más de 4 estrellas" |
+| `--in-stock` | only what can be ordered online |
+| `--category "Bricolaje y jardín"` | the category facet, by label |
+| `--filter CODE=VALUE` | any other facet; repeat for several |
+| `--sort price_asc` | `relevance`, `price_asc`, `price_desc`, `newest`, `rating`, `bestselling`, `discount` |
+
+Facet codes and values depend on the search:
+
+```bash
+lidl search filters atornillador --format pretty
+```
+
+```
+CODE                   FILTER           VALUES (COUNT)
+brand                  Marca            PARKSIDE (97), PARKSIDE PERFORMANCE (25), SILVERCREST (7), LUPILU (3)…
+Tipo de Batería        Tipo de Batería  12 V (15), 20 V (34)
+price                  Precio           2 - 10 (41), 2 - 20 (72), 2 - 40 (112)
+category               Categoría        Bricolaje y jardín (123), Cocina y cuidado del hogar (12), …
+```
+
+## Pages
+
+The site serves 48 products per page.
+
+```bash
+lidl search atornillador --page 2
+lidl search atornillador --pages 3 --format jsonl     # three pages, one product per line
+lidl search atornillador --limit 10
+```
+
+The total the site reports moves by a product or two between identical requests; do not compare it exactly.

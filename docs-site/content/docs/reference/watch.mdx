@@ -1,0 +1,167 @@
+---
+title: watch
+description: "Watch searches and products for price and availability changes"
+---
+
+{/* Written by cmd/docsgen from the command tree; edit the Go help strings instead. */}
+
+## `lidl watch`
+
+Watch searches and products for price and availability changes
+
+Watch searches and products and get an event when something changes:
+a new product in a search, a price change, a product going out of stock or
+coming back, a product page disappearing.
+
+Watches live on this machine. "check" runs the due ones once, prints their
+events and delivers them to the watch's sinks; "run" loops in the foreground;
+"service" installs a systemd timer or launchd agent that runs "check".
+
+```bash
+lidl watch add product 100405593 --name taladro
+lidl watch add search atornillador --max-price 40 --name atornillador --notify phone
+lidl watch check --format jsonl | jq -r 'select(.type=="product.back_in_stock") | .product.url'
+lidl watch events --since 24h --format pretty
+lidl watch service install --interval 1h
+```
+
+### `lidl watch add`
+
+Create a watch
+
+#### `lidl watch add product`
+
+Watch one product's price and online availability
+
+```bash
+lidl watch add product PRODUCT [flags]
+```
+
+| Flag | Type | Default | Description |
+| --- | --- | --- | --- |
+| `--emit-initial` | bool | `false` | report what exists now as product.new events instead of a silent baseline |
+| `--interval` | duration | `0s` | how often the watch is due (default: config watch.interval, else 30m; at least 5m) |
+| `--name` | string | - | watch name: letters, digits, - and _ (required) |
+| `--notify` | stringArray | - | sink from config to deliver events to, repeatable |
+
+#### `lidl watch add search`
+
+Watch a search for new products, price and availability changes
+
+```bash
+lidl watch add search [keywords...] [flags]
+```
+
+| Flag | Type | Default | Description |
+| --- | --- | --- | --- |
+| `--brand` | stringArray | - | brand, repeatable (the site's Marca facet; case does not matter) |
+| `--category` | string | - | the site's category facet value, for example "Bricolaje y jardín" (see `lidl search filters`) |
+| `--emit-initial` | bool | `false` | report what exists now as product.new events instead of a silent baseline |
+| `--filter` | stringArray | - | facet CODE=VALUE, repeatable (see `lidl search filters`) |
+| `--in-stock` | bool | `false` | only products available online |
+| `--interval` | duration | `0s` | how often the watch is due (default: config watch.interval, else 30m; at least 5m) |
+| `--max-price` | float64 | `0` | maximum price in EUR |
+| `--min-price` | float64 | `0` | minimum price in EUR |
+| `--min-rating` | float64 | `0` | minimum average rating, 1 to 5 |
+| `--name` | string | - | watch name: letters, digits, - and _ (required) |
+| `--notify` | stringArray | - | sink from config to deliver events to, repeatable |
+| `--pages` | int | `1` | result pages to compare on each check |
+| `--sort` | string | `relevance` | order: relevance, price_asc, price_desc, newest, rating, bestselling, discount |
+
+### `lidl watch check`
+
+Run due watches once and print their events
+
+```bash
+lidl watch check [NAME...] [flags]
+```
+
+Run watches once. Named watches run whatever their schedule; without names
+the due ones run, or every one with --all. Prints the events (an empty list
+when nothing changed, still exit 0) and delivers them to sinks.
+
+| Flag | Type | Default | Description |
+| --- | --- | --- | --- |
+| `--all` | bool | `false` | run every watch, due or not |
+
+### `lidl watch events`
+
+Show stored events, newest first
+
+```bash
+lidl watch events [NAME] [flags]
+```
+
+| Flag | Type | Default | Description |
+| --- | --- | --- | --- |
+| `--limit` | int | `100` | at most this many events |
+| `--since` | duration | `0s` | only events newer than this, for example 24h |
+
+### `lidl watch list`
+
+List watches
+
+```bash
+lidl watch list
+```
+
+### `lidl watch remove`
+
+Delete a watch and its event history
+
+```bash
+lidl watch remove NAME [flags]
+```
+
+| Flag | Type | Default | Description |
+| --- | --- | --- | --- |
+| `--yes` | bool | `false` | do not ask |
+
+### `lidl watch run`
+
+Check due watches in a loop until Ctrl-C
+
+```bash
+lidl watch run [flags]
+```
+
+Foreground loop: every tick runs the due watches and prints their events as
+they happen (--format jsonl streams one per line). The tick is the shortest
+watch interval unless --interval says otherwise, plus up to 10% jitter.
+
+| Flag | Type | Default | Description |
+| --- | --- | --- | --- |
+| `--interval` | duration | `0s` | tick length (default: the shortest watch interval) |
+
+### `lidl watch service`
+
+Run `watch check` on a timer (systemd, launchd, or a printed schtasks line)
+
+#### `lidl watch service install`
+
+Install and start the timer
+
+```bash
+lidl watch service install [flags]
+```
+
+| Flag | Type | Default | Description |
+| --- | --- | --- | --- |
+| `--interval` | duration | `0s` | timer period (default: config watch.interval, else 30m) |
+
+#### `lidl watch service status`
+
+Show whether the timer is installed and running
+
+```bash
+lidl watch service status
+```
+
+#### `lidl watch service uninstall`
+
+Stop and remove the timer and its log
+
+```bash
+lidl watch service uninstall
+```
+

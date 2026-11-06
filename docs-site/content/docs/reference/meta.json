@@ -1,0 +1,17 @@
+{
+  "title": "Command reference",
+  "pages": [
+    "index",
+    "global-flags",
+    "category",
+    "config",
+    "doctor",
+    "mcp",
+    "product",
+    "search",
+    "sink",
+    "skills",
+    "update",
+    "watch"
+  ]
+}

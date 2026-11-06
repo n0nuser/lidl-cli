@@ -1,0 +1,31 @@
+---
+title: Offers
+description: Old price, discount and how long an offer runs.
+---
+
+Lidl runs limited-time offers, and the stock behind them is limited too. A marked-down product carries the
+old price and the dates in `price`:
+
+```json
+{
+  "ref": "100407643",
+  "title": "PARKSIDE® Juego de brocas helicoidales HSS / …",
+  "price": {
+    "amount": 4.49, "old_price": 5.49, "discount_percent": 18, "currency": "EUR", "tax": "21",
+    "start": "2026-10-18T22:00Z", "end": "2026-11-08T22:59:59Z"
+  },
+  "rating": { "average": 4.9, "count": 45 },
+  "stock": { "available": true, "label": "Disponible online" }
+}
+```
+
+`old_price` and `discount_percent` are absent when the product is not marked down; `end` is absent when the
+price has no fixed end. Times are as the site words them (UTC).
+
+```bash
+lidl search --category "Bricolaje y jardín" --sort discount --limit 10   # biggest markdowns first
+lidl search taladro --sort newest                                           # newest arrivals
+lidl search taladro | jq -r '.products[] | select(.price.old_price) | "\(.price.discount_percent)%\t\(.price.end)\t\(.title)"'
+```
+
+`product show` reads the product page, which has no old price. Use `search` when you want the offer.

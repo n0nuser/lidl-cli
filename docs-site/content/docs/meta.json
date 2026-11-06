@@ -1,0 +1,20 @@
+{
+  "title": "lidl-cli",
+  "pages": [
+    "index",
+    "---Getting started---",
+    "install",
+    "---Using it---",
+    "search",
+    "offers",
+    "output",
+    "examples",
+    "watches",
+    "scheduling",
+    "agents",
+    "---Reference---",
+    "reference",
+    "exit-codes",
+    "api-changes"
+  ]
+}

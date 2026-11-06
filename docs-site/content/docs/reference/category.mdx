@@ -1,0 +1,34 @@
+---
+title: category
+description: "Browse the site's category pages"
+---
+
+{/* Written by cmd/docsgen from the command tree; edit the Go help strings instead. */}
+
+## `lidl category`
+
+Browse the site's category pages
+
+### `lidl category list`
+
+List the /c/\<slug>/s\<id> category pages
+
+```bash
+lidl category list [flags]
+```
+
+List the category pages from the site's sitemap. The sitemap also holds
+brand and editorial pages, and carries no display names (Name is the slug).
+
+To search inside a category, pass the site's category label to
+`lidl search --category`; `lidl search filters` shows the labels.
+
+```bash
+lidl category list --format pretty
+lidl category list --match jardin
+```
+
+| Flag | Type | Default | Description |
+| --- | --- | --- | --- |
+| `--match` | string | - | only categories whose slug contains this text |
+

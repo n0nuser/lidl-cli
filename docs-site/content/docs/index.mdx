@@ -1,0 +1,35 @@
+---
+title: lidl-cli
+description: Search lidl.es prices, offers and online availability from the terminal.
+---
+
+lidl.es sells a rotating range: bricolage tools one week, garden furniture the next, and most prices are
+only good until the offer ends. `lidl` is a single Go binary that asks the site's own search for you,
+filters it, and watches it: what is on offer, what it cost before, when the offer ends, and whether you can
+still order it. It prints JSON.
+
+It is unofficial and read-only. There is no account, no cart and no order: buying stays in the browser.
+No login or browser session is needed either.
+
+<Cards>
+  <Card title="Install" href="/docs/install">go install, or a release binary.</Card>
+  <Card title="Search" href="/docs/search">Brand, price range, rating, sort and every facet the site has.</Card>
+  <Card title="Offers" href="/docs/offers">Old price, discount and the dates an offer runs.</Card>
+  <Card title="Watches" href="/docs/watches">Price and availability changes as a stream of events.</Card>
+  <Card title="Command reference" href="/docs/reference">Generated from the binary.</Card>
+</Cards>
+
+## What it looks like
+
+```bash
+lidl search atornillador --format pretty
+lidl search taladro --brand parkside --sort discount --limit 10
+lidl product show 100405593 --format pretty
+lidl watch add product 100405593 --name taladro --notify phone
+```
+
+<Callout type="warn" title="Unofficial">
+  lidl.es publishes no documented API. The CLI reads the same JSON search and product pages the site uses,
+  so a change on the site can break it. When that happens it exits 7 with a prefilled issue link instead of
+  printing wrong numbers. See [When the site changes](/docs/api-changes).
+</Callout>

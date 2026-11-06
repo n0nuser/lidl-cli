@@ -1,0 +1,25 @@
+---
+title: Scheduling
+description: Run checks on a timer without a daemon.
+---
+
+```bash
+lidl watch service install --interval 1h
+lidl watch service status
+lidl watch service uninstall
+```
+
+On Linux this writes a systemd user service and timer, on macOS a launchd agent; both run
+`lidl watch check --format jsonl` and append to `~/.local/state/lidl-cli/lidl-watch.log` (rotated at 1 MiB).
+On Windows the command prints the `schtasks` line to run.
+
+A systemd user timer stops at logout unless lingering is on:
+
+```bash
+loginctl enable-linger
+```
+
+The default interval is 30 minutes and the floor is 5. A check that gets refused (exit 5) stops at once; the
+next tick tries again.
+
+Without the service, `lidl watch run` loops in the foreground, or put `lidl watch check` in cron.

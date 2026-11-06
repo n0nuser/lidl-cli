@@ -1,0 +1,30 @@
+---
+title: Examples
+description: Recipes with jq.
+---
+
+Cordless drills under 40 €, best rated first:
+
+```bash
+lidl search taladro --max-price 40 --in-stock --sort rating --limit 10 \
+  | jq -r '.products[] | "\(.price.amount) €\t\(.rating.average)\t\(.title)"'
+```
+
+Everything marked down by at least 30 % in a category, with the day the offer ends:
+
+```bash
+lidl search --category "Bricolaje y jardín" --sort discount --pages 2 \
+  | jq -r '.products[] | select(.price.discount_percent >= 30) | "\(.price.discount_percent)%\t\(.price.end // "-")\t\(.title)"'
+```
+
+Every brand the site lists for a search:
+
+```bash
+lidl search filters taladro | jq -r '.[] | select(.code=="brand") | .values[].value'
+```
+
+Is it still orderable?
+
+```bash
+lidl product stock 100405593 | jq .stock.available
+```
